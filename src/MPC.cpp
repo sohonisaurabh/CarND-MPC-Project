@@ -267,14 +267,13 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
 }
 
 //Predic the next state before hand to incorporate latency in actuator commands in the model
-Eigen::VectorXd PredictNextState(Eigen::VectorXd state, Eigen::VectorXd actuations, double latency) {
+std::vector<double> MPC::PredictNextState(std::vector<double> state, std::vector<double> actuations, double latency) {
   double px = state[0];
   double py = state[1];
   double psi = state[2];
   double v = state[3];
   double acceleration = actuations[0];
   double delta = actuations[1];
-  Eigen::VectorXd result;
 
   //Kinematic equations to predict the next state. Here, one assumption is used:
   //The accelaration for vehicle at current time step is not received from simulator. Hence, 
@@ -283,7 +282,8 @@ Eigen::VectorXd PredictNextState(Eigen::VectorXd state, Eigen::VectorXd actuatio
   double py_next = py + (v * sin(psi) * latency);
   double psi_next = psi - ((v * delta * latency)/Lf);
   double v_next = v + (acceleration * latency);
-  result << px_next, py_next, psi_next, v_next;
+
+  std::vector<double> result = {px_next, py_next, psi_next, v_next};
 
   return result;
 }

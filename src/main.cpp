@@ -74,7 +74,7 @@ int main(int argC, char** argV) {
   //Conditional check for running the controller solver or not
   if (argC > 1) {
     std::string controller_config = argV[1];
-    if (controller_config.compare("controlle-off") == 0) {
+    if (controller_config.compare("controller-off") == 0) {
       start_controller = false;
     }
   }
@@ -104,16 +104,13 @@ int main(int argC, char** argV) {
           double delta = j[1]["steering_angle"];
           double acceleration = j[1]["throttle"];
 
-          //Incorporate latency into the model. time_lapse is 100ms or 1sec.
+          //Incorporate latency into the model. time_lapse is 100ms or 0.1sec.
           double time_lapse = 0.1;
-          Eigen::VectorXd current_mea(4);
-          current_mea << px, py, psi, v;
-          Eigen::VectorXd current_actuator_from_simulator(4);
-          current_actuator_from_simulator << a, delta;
+          std::vector<double> current_mea = {px, py, psi, v};
+          std::vector<double> current_actuator_from_sim = {acceleration, delta};
 
           //Predict state for situation after latency
-          Eigen::VectorXd next_pred = mpc.PredictNextState(current_mea, 
-            current_actuator_from_simulator, time_lapse);
+          std::vector<double> next_pred = mpc.PredictNextState(current_mea, current_actuator_from_sim, time_lapse);
 
           //1. - Shift the coordinates of ptsx and ptsy to origin of car
           //2. - Rotate the coordinates of ptsx and ptsy to bring them w.r.t. psi of car
