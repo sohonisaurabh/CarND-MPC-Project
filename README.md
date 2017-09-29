@@ -1,6 +1,6 @@
 # CarND-MPC-Project
 
-This repository contains C++ code for implementation of Model Predictive Controller. MPC is used to derive throttle, brake and steering angle actuators for a car to drive around a circular track. This task was implemented to partially fulfill Term-II goals of Udacity's self driving car nanodegree program
+This repository contains C++ code for implementation of Model Predictive Controller. MPC is used to derive throttle, brake and steering angle actuators for a car to drive around a circular track. This task was implemented to partially fulfill Term-II goals of Udacity's self driving car nanodegree program.
 
 
 ## Background
@@ -9,12 +9,12 @@ A critical module in the working of any robotic system is the control module. Co
 
 One of the basic implementation of a control system is a Proportional (P), Differential (D), Integral (I), together, a PID controller. PID controller is the most popular controller and is used in applications across domains. But PID controller cannot be used for controlling complex systems such as self-driving vehicles as one needs to guarantee a smooth and safe journey and not just navigation from one point to another.
 
-A more sophisticated class of controllers is Model Predictive Controller (MPC). MPC is built taking into consideration the motion model of the system. Hence, any this controller adapts to any sort of secondary ask along with the primary ask. For e.g., as mentioned earlier, MPC can be used not only to perform the primary task of navigation but also to ensure a smooth ride of a self-driving vehicle. This is possible as one can start with a simple motion model and then easily add new parameters to the cost function. Also, being more sophisticated, MPC can also be used to model different uncertainties and external environmental factors into the motion model of the system.
+A more sophisticated class of controllers is the Model Predictive Controller (MPC). MPC is built taking into consideration the motion model of the system. Hence, this controller adapts to any sort of secondary ask along with the primary ask. For e.g., as mentioned earlier, MPC can be used not only to perform the primary task of navigation but also to ensure a smooth ride of a self-driving vehicle. This is possible as one can start with a simple motion model and then easily add new parameters to the cost function. Also, being more sophisticated, MPC can also be used to model different uncertainties and external environmental factors into the motion model of the system.
 
 
 ## Working of Model Predictive Controller
 
-MPC is a non-linear system which generates optimized parameters so that the value of cost function is minimized. Here, cost function refers to the problem built by taking into consideration the model of the system, range of inputs, limitations on outputs and/or the effect of external factors acting on the system. 
+MPC is a non-linear system which generates optimized parameters with the constraint of obtaining minimal value of cost function. Here, cost function refers to the problem built by taking into consideration the model of the system, range of inputs, limitations on outputs and/or the effect of external factors acting on the system. 
 
 A typical cost function in case of a self-driving vehicle will have following constraints:
 
@@ -25,16 +25,17 @@ A typical cost function in case of a self-driving vehicle will have following co
   
 These constraints are merged to form a cost function. MPC tries to reduce the cost function and come up with the values of actuation inputs to the vehicle, which can be the steering angle of the wheel and/or the throttle/brake magnitude.
 
+
 ## Project Goal
 
-In this project, MPC was implemented to drive a car around circular track having sharp left and right turns. A good solution would help the car stay in the center portion of the lane and take smooth left and right turns without touching or running over the edges of the lane (considered as risky in case humans were travelling in such a car). Also, the final implementation had to be tested with speeds as high as 100mph and note down the behavior of the car.
+In this project, MPC was implemented to drive a car around a circular track having sharp left and right turns. A good solution would help the car stay in the center portion of the lane and take smooth left and right turns without touching or running over the edges of the lane (considered as risky in case humans were travelling in such a car). Also, the final implementation had to be tested with speeds as high as 100mph and note down the behavior of the car.
 
 
 ## Project Implementation
 
-Simulation of a circular track was achieved in the [Udacity's self driving car simulator](https://github.com/udacity/self-driving-car-sim/releases). The simulator communicated to C++ code with the help of [uWebSockets library](https://github.com/uNetworking/uWebSockets). Following parameters were received from the simulator for each communication ping:
+Simulation of a circular track was achieved in the [Udacity's self driving car simulator](https://github.com/udacity/self-driving-car-sim/releases). While MPC was implmented in C++, the simulator communicated to C++ code with the help of [uWebSockets library](https://github.com/uNetworking/uWebSockets). Following parameters were received from the simulator for each communication ping:
 
-  1. List of waypoints with x and y coordinates of each point in global map system. These waypoints represented the suggested trajectory for the car from current position to few distance ahead of it. Such type of information is usually received from a [Path Planning Module](https://en.wikipedia.org/wiki/Motion_planning) implemented in self-driving vehicles. The path planning module generates reference trajectory for a section of the total journey based on the current location of the vehicle.
+  1. List of waypoints with x and y coordinates of each point in global map system. These waypoints represent the suggested trajectory for the car from current position to few distance ahead of it. Such type of information is usually received from a [Path Planning Module](https://en.wikipedia.org/wiki/Motion_planning) implemented in self-driving vehicles. The path planning module generates reference trajectory for a section of the total journey based on the current location of the vehicle.
   
   2. The current position and heading of car in global map system.
   
@@ -47,26 +48,30 @@ Simulation of a circular track was achieved in the [Udacity's self driving car s
 The final implementation consisted of following major steps:
 
   ### 1. Align of data relative to the motion of car:
-  In this step, the coordinates of waypoints were transformed from global map system to vehicle's coordinate system. This was done to ensure the calculations of cte and heading error were less complex and involved less calculations. An overview of global map coordinate system and local vehicle system coordinate system is shown below:
+  
+  In this step, the coordinates of waypoints were transformed from global map system to vehicle's coordinate system. This was done to ensure the calculations of cte and epsi were less complex and involved less calculations. An overview of global map coordinate system and local vehicle system coordinate system is shown below:
   
 ![steering angle equation](https://raw.githubusercontent.com/sohonisaurabh/CarND-MPC-Project/master/image-resources/global-map-axes-definition.png)
 
   ### 2. Generation of reference trajectory from waypoints:
-  The transformed coordinates of waypoints are then used to create a smooth curved trajectory, which will act as a reference for motion of the car. This is done by using [polynomial fitting or regression technique](https://en.wikipedia.org/wiki/Polynomial_regression). In this technique, discrete points are fitted to a polynomial of desired degree in order to obtain the relation function between x and y coordinates, also known as curve equation.
-  In this project, the waypoints coordinates were fitted to **3rd degree** polynomial. A smooth curve was drawn inside the scene in the simulator shown by yellow line in the screen cap below:
+  
+  The transformed coordinates of waypoints were then used to create a smooth curved trajectory, which will act as a reference for motion of the car. This is done by using [polynomial fitting or regression technique](https://en.wikipedia.org/wiki/Polynomial_regression). In this technique, discrete points are fitted to a polynomial of desired degree in order to obtain the relation function between x and y coordinates, also known as the curve equation.
+  In this project, the waypoints coordinates were fitted to a **3rd degree** polynomial. A smooth curve was drawn inside the scene in the simulator shown by yellow line in the screen cap below:
     
 ![Waypoints curve](https://raw.githubusercontent.com/sohonisaurabh/CarND-MPC-Project/master/image-resources/waypoints-curve.png)
 
   ### 3. Calculation of CTE and EPSI:
+  
   As a result of transformation of data in step 1, the calculation of cte was a linear function and the calculation of epsi involved taking arctangent of the first order coefficient of fitting polynomial. The formulae are given below:
   
 ![CTE formula](https://raw.githubusercontent.com/sohonisaurabh/CarND-MPC-Project/master/image-resources/cte-formula.png)
 
 ![EPSI formula](https://raw.githubusercontent.com/sohonisaurabh/CarND-MPC-Project/master/image-resources/epsi-formula.png)
 
-  In this step of initialization, the second terms in the formula turn to be zero.
+  In this step of initialization, the second terms in the formula turn to be zero. In the later time steps, second term came into consideration.
   
   ### 4. Definition of motion model, control/actuator inputs and state update equations:
+  
   The motion model in this project was based on the [Kinematic equations of motion](https://en.wikipedia.org/wiki/Equations_of_motion#Kinematic_quantities) in 2 dimensions. 
     
   The state consists of following parameters:
@@ -84,39 +89,45 @@ The final implementation consisted of following major steps:
 ![Kinematic State update equations](https://raw.githubusercontent.com/sohonisaurabh/CarND-MPC-Project/master/image-resources/kinematic-state-update-equations.png)
 
   ### 5. Definition of time step length (N) and duration between time steps (dt):
-  Given the reference trajectory from polynomial fit of waypoints and the motion model of the car, MPC estimates the value of actuator inputs for current time step and few time steps later. This estimate is used to predict the actuator inputs to the car ahead of time. This process of estimate generation is tunable with the use of N and dt. Higher value of N ensures more number of estimates while higher value of dt ensures the estimates are closer in time step.
-  Different combinations of values of N and dt were tried and following were the results:
+  
+  Given the reference trajectory from polynomial fit of waypoints and the motion model of the car, MPC estimates the value of actuator inputs for current time step and few time steps later. This estimate is used to predict the actuator inputs to the car ahead of time. This process of estimate generation is tunable with the use of N and dt. Higher value of N ensures more number of estimates while higher value of dt ensures the estimates are closer in time.
+  Different combinations of values of N and dt were tried and following were the obervations:
     
-        N and dt            Effect
+        N and dt            Observation/Effect
         
         N = 10, dt = 0.1	  Sharp turns as less number of discrete points between subsequent states
         N = 20, dt = 0.1	  Estimate too ahead of time resulting in slower implementation of algorithm
         N = 10, dt = 0.05	  Too close estimates resulting in oscillation of car at slow speeds
         N = 7, dt = 0.07	  Perfect combination for motion of car
 
-  After trial and error, a setting of **N = 7** and **dt = 0.07 (sec)** was used to predict actuator inputs and the trajectory of car for roughly next 500ms. MPC implementation outputs the coordinates and heading of car for next 500ms and is drawn inside the simulator using green curve as shown below:
+  After trial and error, a setting of **N = 7** and **dt = 0.07 (sec)** was used to predict actuator inputs and the trajectory of car for roughly next 500ms. MPC implementation generates the coordinates and heading of car for next 500ms and is drawn inside the simulator using green curve as shown below:
     
 ![MPC estimate](https://raw.githubusercontent.com/sohonisaurabh/CarND-MPC-Project/master/image-resources/mpc-estimate.png)
 
   ### 6. Definition of desired behavior and actuator constraints:
+  
   In order to define the cost function of the system, it was essential to list down the desired values of different parameters. They are given below:
     
-      1. Expected value of CTE to be zero
-      2. Expect value of EPSI to be zero
-      3. Maximum speed of the car to be 100mph. This was a tunable parameter and the goal was to test the maximum speed at which the car stays on the track and moves safely.
+    1. Expected value of CTE to be zero
+    2. Expect value of EPSI to be zero
+    3. Maximum speed of the car to be 100mph. This was a tunable parameter and the goal was to test the maximum speed at which the car stays on the track and moves safely.
 
   ### 7. Definition of cost function for MPC:
-  The last step in the implementation is to define the cost function for MPC. MPC solver generates actuator values while arriving at the minimal value of cost function. Key elements and features of the cost function are given below:
+  
+  The last step in the implementation is to define the cost function for MPC. MPC solver, implemented using Ipopt and Cppad library generated actuator values while arriving at the minimal value of cost function. Key elements and features of the cost function are given below:
     
-   1. Highest weight for CTE and EPSI calculated. This was to ensure the car stays in the middle of lane and head in desired direction
+   1. Highest weight for calculated CTE and EPSI. This was to ensure the car stays in the middle of lane and head in desired direction
    2. Reduce high initial values of control inputs (delta and a) to ensure there is no jerk in motion of the car
    3. Minimize the change in values of control inputs (delta and a) in order to minimize oscillations in the motion
-   4. Minimize speeds at higher steering angle and minimize steering at higher speeds. This was to ensure the car took smooth turns by reducing the speed while it reached maximum possible speed on straight ahead path.
+   4. Minimize speeds at higher steering angle and minimize steering at higher speeds. This was to ensure the car took smooth turns by reducing the speed while it reached maximum possible speed on straight ahead path
      
+ ### 8. Incorporating effect of latency in the control actuations:
+  
+  In real world systems as complex as commercial jet planes, there exists certain amount of delay in time between the actuation of control and its effect on the motion. To achieve an implementation close to real world scenario, a latency of 100ms was introduced in the simulator. This delay caused control actuations to reach the car in later of time. This worked fine at low speeds till 25mph but resulted in undesired behavior at high speeds. To take into account the effect of this latency, the state parameters for next state were calculated beforehand and were sent to MPC for generating steering and throttle values. This ensured the actuations applied at current point of time were actually for the next time step (i.e. after 100 ms). This small update in state calculation solved the problem of latency and the car was back on track w.r.t. its desired behavior.
 
 ## Project Output
 
-MPC used to derive the steering angles and throttle/brake for a car moving on a circular track was implemented successfully. The car could stay close to the center of the lane and take smooth left and right turns along its path while reaching speeds as high as 97mph. This is demonstrated below:
+MPC used to derive the steering angles and throttle/brake for a car moving on a circular track was implemented successfully. The car could stay close to the center of the lane and take smooth left and right turns along its path while reaching speeds as high as 97mph. This was achieved in spite of presence of latency in the system. This is demonstrated below:
 
 ![MPC demo gif](https://j.gifs.com/RoYlkz.gif)
 
