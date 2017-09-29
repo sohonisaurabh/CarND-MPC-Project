@@ -12,6 +12,9 @@
 // for convenience
 using json = nlohmann::json;
 
+//Global variable to switch on and off the controller.
+bool start_controller = true;
+
 // For converting back and forth between radians and degrees.
 constexpr double pi() { return M_PI; }
 double deg2rad(double x) { return x * pi() / 180; }
@@ -65,9 +68,16 @@ Eigen::VectorXd polyfit(Eigen::VectorXd xvals, Eigen::VectorXd yvals,
   return result;
 }
 
-int main() {
+int main(int argC, char** argV) {
   uWS::Hub h;
 
+  //Conditional check for running the controller solver or not
+  if (argC > 1) {
+    std::string controller_config = argV[1];
+    if (controller_config.compare("controlle-off") == 0) {
+      start_controller = false;
+    }
+  }
   // MPC is initialized here!
   MPC mpc;
 
@@ -94,18 +104,26 @@ int main() {
           double delta = j[1]["steering_angle"];
           double acceleration = j[1]["throttle"];
 
+          //Incorporate latency into the model. time_lapse is 100ms or 1sec.
           double time_lapse = 0.1;
-          double px_next = px + (v * cos(psi) * time_lapse);
-          double py_next = py + (v * sin(psi) * time_lapse);
-          double psi_next = psi - ((v * delta * time_lapse)/2.67);
-          // double psi_next = psi;
-          double v_next = v + (acceleration * time_lapse);
+          Eigen::VectorXd current_mea(4);
+          current_mea << px, py, psi, v;
+          Eigen::VectorXd current_actuator_from_simulator(4);
+          current_actuator_from_simulator << a, delta;
 
-          // TODO 1 - Shift the coordinates of ptsx and ptsy to origin of car
-          // TODO 2 - Rotate the coordinates of ptsx and ptsy to bring them w.r.t. psi of car
-          // TODO 3 - Polyfit accepts Eigen vector and ptsx and ptsy are std::vectors. Make this 
+          //Predict state for situation after latency
+          Eigen::VectorXd next_pred = mpc.PredictNextState(current_mea, 
+            current_actuator_from_simulator, time_lapse);
+
+          //1. - Shift the coordinates of ptsx and ptsy to origin of car
+          //2. - Rotate the coordinates of ptsx and ptsy to bring them w.r.t. psi of car
+          //3. - Polyfit accepts Eigen vector and ptsx and ptsy are std::vectors. Make this 
           //          conversion
-          // Convert global coordinates to vehicle coordinates so that formula of cte and epsi is easy and involves less calculation
+          //4. Convert global coordinates to vehicle coordinates so that formula of cte and epsi is easy and involves less calculation
+          double px_next = next_pred[0];
+          double py_next = next_pred[1];
+          double psi_next = next_pred[2];
+          double v_next = next_pred[3];
           double xdiff = 0;
           double ydiff = 0;
           Eigen::VectorXd ptsx_vehicle(ptsx.size());
@@ -116,51 +134,41 @@ int main() {
             xdiff = ptsx[i] - px_next;
             ydiff = ptsy[i] - py_next;
 
-            // xdiff = ptsx[i] - px;
-            // ydiff = ptsy[i] - py;
-            
             ptsx_vehicle[i] = xdiff * cos(-psi_next) - ydiff * sin(-psi_next);
             ptsy_vehicle[i] = xdiff * sin(-psi_next) + ydiff * cos(-psi_next);
-
-            // ptsx_vehicle[i] = xdiff * cos(-psi) - ydiff * sin(-psi);
-            // ptsy_vehicle[i] = xdiff * sin(-psi) + ydiff * cos(-psi);
-            
-            // std::cout<<"Transformed X is: "<<ptsx_vehicle[i]<<std::endl;
-            // std::cout<<"Transformed Y is: "<<ptsy_vehicle[i]<<std::endl;
           }
           auto coeffs = polyfit(ptsx_vehicle, ptsy_vehicle, 3);
          
-          //TODO 4 - Calculate cte and epsi. cte is the horizontal line
+          //Calculate cte and epsi. cte is the horizontal line
           double cte = polyeval(coeffs, 0);
           double epsi = -atan(coeffs[1]);
 
-          //TODO 5 - Create the state
+          //Create the state vector
           Eigen::VectorXd state(6);
           state << 0, 0, 0, v_next, cte, epsi;
-          // state << 0, 0, 0, v, cte, epsi;
           
-          //TODO 6 - Set the steering angle to delta and throttle to a for current time step
-          //          solved by MPC
+          //Placeholder for solution returned by optimizer
           std::vector<double> solution;
-          solution = mpc.Solve(state, coeffs);
-          /*
-          * TODO: Calculate steering angle and throttle using MPC.
-          *
-          * Both are in between [-1, 1].
-          *
-          */
-          double steer_value = solution[0]/deg2rad(25);
-          double throttle_value = solution[1];
-          // double steer_value;
-          // double throttle_value;
+          double steer_value;
+          double throttle_value;
+          
+          //Call the solver and set the steering angle to delta and throttle to a for current 
+          //time step solved by MPC
+          if (start_controller) {
+            solution = mpc.Solve(state, coeffs);
+            //Multiplying steering angle by -1 as the implementation of positive, negative
+            //angles and right, left turn in simulator is reversed in comparison to co-ordinate
+            //system in vehicle's plane
+            steer_value = -1.0 * solution[0]/deg2rad(25);
+            throttle_value = solution[1];
+          }
 
           json msgJson;
-          // NOTE: Remember to divide by deg2rad(25) before you send the steering value back.
-          // Otherwise the values will be in between [-deg2rad(25), deg2rad(25] instead of [-1, 1].
-          msgJson["steering_angle"] = -1.0 * steer_value;
+
+          msgJson["steering_angle"] = steer_value;
           msgJson["throttle"] = throttle_value;
           
-          //TODO 7 - Use polyfit to plot green line using vars solved by MPC
+          //Use polyfit to plot green line using vars solved by MPC
           //Display the MPC predicted trajectory 
           vector<double> mpc_x_vals;
           vector<double> mpc_y_vals;
@@ -181,7 +189,7 @@ int main() {
           msgJson["mpc_x"] = mpc_x_vals;
           msgJson["mpc_y"] = mpc_y_vals;
 
-          // TODO 8 - Use polyfit to plot yellow line using way points
+          //Use polyfit to plot yellow line using way points
           //Display the waypoints/reference line
           vector<double> next_x_vals;
           vector<double> next_y_vals;
@@ -210,7 +218,6 @@ int main() {
           // NOTE: REMEMBER TO SET THIS TO 100 MILLISECONDS BEFORE
           // SUBMITTING.
           this_thread::sleep_for(chrono::milliseconds(100));
-          // this_thread::sleep_for(chrono::milliseconds(0));
           ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
         }
       } else {
