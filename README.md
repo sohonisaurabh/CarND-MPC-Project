@@ -108,13 +108,13 @@ The final implementation consisted of following major steps:
   
   In order to define the cost function of the system, it was essential to list down the desired values of different parameters. They are given below:
     
-    1. Expected value of CTE to be zero
-    2. Expect value of EPSI to be zero
-    3. Maximum speed of the car to be 100mph. This was a tunable parameter and the goal was to test the maximum speed at which the car stays on the track and moves safely.
+   1. Expected value of CTE to be zero
+   2. Expect value of EPSI to be zero
+   3. Maximum speed of the car to be 100mph. This was a tunable parameter and the goal was to test the maximum speed at which the car stays on the track and moves safely.
 
   ### 7. Definition of cost function for MPC:
   
-  The last step in the implementation is to define the cost function for MPC. MPC solver, implemented using Ipopt and Cppad library generated actuator values while arriving at the minimal value of cost function. Key elements and features of the cost function are given below:
+  The last step in the implementation is to define the cost function for MPC. MPC solver, implemented using [Ipopt]((https://projects.coin-or.org/Ipopt) and [Cppad]((https://www.coin-or.org/CppAD/) library generated actuator values while arriving at the minimal value of cost function. Key elements and features of the cost function are given below:
     
    1. Highest weight for calculated CTE and EPSI. This was to ensure the car stays in the middle of lane and head in desired direction
    2. Reduce high initial values of control inputs (delta and a) to ensure there is no jerk in motion of the car
@@ -129,7 +129,7 @@ The final implementation consisted of following major steps:
 
 MPC used to derive the steering angles and throttle/brake for a car moving on a circular track was implemented successfully. The car could stay close to the center of the lane and take smooth left and right turns along its path while reaching speeds as high as 97mph. This was achieved in spite of presence of latency in the system. This is demonstrated below:
 
-![MPC demo gif](https://j.gifs.com/RoYlkz.gif)
+![MPC demo gif](https://raw.githubusercontent.com/sohonisaurabh/CarND-MPC-Project/master/image-resources/mpc-demo.gif)
 
 Detailed insight into features of the simulator and implementation is demonstrated in this [MPC demo video](https://www.youtube.com/watch?v=XEvhIAxH2bM).
 
