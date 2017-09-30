@@ -57,8 +57,8 @@ class FG_eval {
     // i. Highest weight to reducing cte and epsi
     unsigned int t;
     for (t = 0; t < N; t++) {
-      fg[0] += 2000*CppAD::pow(vars[t + cte_start], 2);
-      fg[0] += 2000*CppAD::pow(vars[t + epsi_start], 2);
+      fg[0] += 1500*CppAD::pow(vars[t + cte_start], 2);
+      fg[0] += 1500*CppAD::pow(vars[t + epsi_start], 2);
 
       //To maintain velocity and does not stop.
       fg[0] += 10*CppAD::pow(vars[v_start + t] - ref_v, 2);
@@ -118,7 +118,7 @@ class FG_eval {
       //f0 and psides0 calcultation
       //Since polynomial is fit to 3rd degree
       AD<double> f0 = coeffs[0] + (coeffs[1] * x0) + (coeffs[2] * x0 * x0) + (coeffs[3] * x0 * x0 * x0);
-      AD<double> psides0 = CppAD::atan(coeffs[1]);
+      AD<double> psides0 = CppAD::atan((3 * coeffs[3] * x0 * x0) + (2 * coeffs[2] * x0) + coeffs[1]);
 
       // Here's `x` to get you started.
       // The idea here is to constraint this value to be 0.
